@@ -1,0 +1,49 @@
+#!/Applications/MAMP/bin/php/php7.2.7/bin/php
+<?php
+	
+	function convert_name($str) {
+		$str[0] = chr(ord(substr($str, 0, 1)) - 32);
+
+		while (true) {
+			$pos = strpos($str, "_");
+			if ($pos != false) {
+				$pos++;
+				$str[$pos] = chr(ord(substr($str, $pos, 1)) - 32);
+				$str = substr_replace($str, "", $pos-1, 1);
+			} else {
+				break;
+			}
+		}
+
+		return $str;
+	}
+
+	// CREATE
+	if ($argv[1] == "create") {
+
+		$class = convert_name($argv[2]);
+		$file = fopen(__DIR__ . "/../app/model/" . $class . ".php", "w") or die("issue");
+		$template = file_get_contents(__DIR__ . "/../vv/data/dao_template.php");
+		fwrite($file, str_replace("CLASS_NAME", $class, $template));
+
+	}
+
+	else if ($argv[1] == "migrate") {
+
+		//error_reporting(E_ERROR | E_PARSE);
+
+		$class = convert_name($argv[2]);
+
+		//$obj = new ReflectionClass(__DIRNAME__ . "/../app/model/" . $class);
+		include __DIR__ . "/../vv/dao.php";
+		include __DIR__ . "/../vv/db.php";
+		include __DIR__ . '/../app/model/' . $class . ".php";
+		
+		$r = new ReflectionClass($class);
+		$obj = $r->newInstance();
+		$obj->model();
+		$obj->create($class);
+
+	}
+
+?>
