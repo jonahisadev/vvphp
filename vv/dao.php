@@ -6,6 +6,7 @@ abstract class DAOItemType {
 	const BLOB		= 2;
 	const DATE		= 3;
 	const TIME		= 4;
+	const TEXT 		= 5;
 }
 
 abstract class DAOConst {
@@ -40,6 +41,15 @@ class DAOItem {
 		return $this;
 	}
 
+	function unsigned() {
+		if ($this->type == DAOItemType::NUMBER) {
+			$this->opts = [
+				'unsigned' => 1
+			];
+		}
+		return $this;
+	}
+
 }
 
 abstract class DAO {
@@ -63,6 +73,9 @@ abstract class DAO {
 			switch ($item->type) {
 				case DAOItemType::NUMBER:
 					$sql .= " INT";
+					if (isset($item->opts['unsigned'])) {
+						$sql .= " UNSIGNED";
+					}
 					break;
 				case DAOItemType::STR:
 					$sql .= " VARCHAR(" . $item->opts['len'] . ")";
@@ -145,21 +158,25 @@ abstract class DAO {
 		$inst->model();
 
 		// Find the primary key
-		foreach ($inst->_items as $item) {
-			$primary = $item;
-			break;
-		}
+		$primary = DAO::findPrimaryItem($inst);
 
-		// Run the query
-		$sql = "SELECT * FROM " . $class->getName() . " WHERE " . $primary->name . "=:" . $primary->name;
-		$stmt = $_DB->prepare($sql);
-		$stmt->execute([$primary->name => $pri]);
-		$data = $stmt->fetch();
+		if ($pri != NULL) {
+			// Run the query
+			$sql = "SELECT * FROM " . $class->getName() . " WHERE " . $primary->name . "=:" . $primary->name;
+			$stmt = $_DB->prepare($sql);
+			$stmt->execute([$primary->name => $pri]);
+			$data = $stmt->fetch();
 
-		// Create DBO
-		foreach ($inst->_items as $item) {
-			$key = $item->name;
-			$inst->{$key} = $data[$key];
+			// Create DBO
+			foreach ($inst->_items as $item) {
+				$key = $item->name;
+				$inst->{$key} = $data[$key];
+			}
+		} else {
+			foreach ($inst->_items as $item) {
+				$key = $item->name;
+				$inst->{$key} = NULL;
+			}
 		}
 
 		// Return
@@ -170,6 +187,14 @@ abstract class DAO {
 		global $_DB;
 		if (!$_DB) {
 			die("DB was not initialized");
+		}
+
+		// Set up a class instance
+		$class = new ReflectionClass(get_called_class());
+
+		// Create an empty DBO
+		if ($data == NULL) {
+			return $class->getMethod("get")->invoke($class, NULL);
 		}
 
 		// Assemble variable names
@@ -201,6 +226,54 @@ abstract class DAO {
 
 		$stmt = $_DB->prepare($sql);
 		$stmt->execute($data);
+
+		return $class->getMethod("get")->invoke($class, $_DB->lastInsertId());
+	}
+
+	public function save() {
+		global $_DB;
+		if (!$_DB) {
+			die("DB was not initialized");
+		}
+
+		// Begin SQL statement
+		$sql = "UPDATE " . get_called_class() . " SET ";
+
+		// Get object properties
+		$props = get_object_vars($this);
+
+		// Loop through
+		$index = 0;
+		foreach ($props as $key => $val) {
+			if ($key == "_items") {
+				continue;
+			}
+
+			$sql .= $key . "=:" . $key;
+			
+			$index++;
+			if ($index != count($props)-1) {
+				$sql .= ", ";
+			}
+		}
+
+		// Finish up the SQL
+		$primary = DAO::findPrimaryItem($this);
+		$sql .= " WHERE " . $primary->name . "=:" . $primary->name;
+
+		// Run a PDO
+		$stmt = $_DB->prepare($sql);
+		$stmt->execute($props);
+	}
+
+	private static function findPrimaryItem($inst) {
+		foreach ($inst->_items as $item) {
+			if ($item->primary) {
+				$primary = $item;
+			}
+			break;
+		}
+		return $primary;
 	}
 
 	protected function number($name, $def=NULL) {
@@ -214,6 +287,12 @@ abstract class DAO {
 			"len" => $len
 		];
 		$item = new DAOItem(DAOItemType::STR, $name, $def, $opts);
+		$this->_items[] = $item;
+		return $item;
+	}
+
+	protected function text($name, $def=NULL) {
+		$item = new DAOItem(DAOItemType::TEXT, $name, $def);
 		$this->_items[] = $item;
 		return $item;
 	}

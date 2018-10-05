@@ -94,6 +94,9 @@ class Route {
 			// Set up a ref array
 			$matches = [];
 
+			// 404 check
+			$found = false;
+
 			// Loop through routes
 			for ($i = 0; $i < count(Route::$get); $i++) {
 
@@ -107,6 +110,9 @@ class Route {
 
 				// If we have a match, do more checks
 				if (count($matches) > 0) {
+					// This isn't 404
+					$found = true;
+
 					// Get the callback
 					$cb = $route->cb;
 
@@ -145,12 +151,19 @@ class Route {
 					call_user_func_array($cb, $args);
 				}
 			}
+
+			if (!$found) {
+				Route::send404($url);
+			}
 		}
 
 		// POST
 		if ($method == 'POST') {
 			// Set up a ref array
 			$matches = [];
+
+			// Check 404
+			$found = false;
 
 			// Loop through routes
 			for ($i = 0; $i < count(Route::$post); $i++) {
@@ -165,6 +178,9 @@ class Route {
 				if (count($matches) > 0) {
 					// Get the callback
 					$cb = $route->cb;
+
+					// Save 404
+					$found = true;
 
 					// Build argument list
 					$ref = new ReflectionFunction($cb);
@@ -213,6 +229,10 @@ class Route {
 					call_user_func_array($cb, $args);
 				}
 			}
+
+			if (!$found) {
+				Route::send404();
+			}
 		}
 	}
 
@@ -229,6 +249,11 @@ class Route {
 		$last = Route::$post[count(Route::$post)-1];
 		$last->csrf = true;
 		Session::init();
+	}
+
+	private static function send404($URL) {
+		http_response_code(404);
+		include 'vv/data/404.php';
 	}
 
 }

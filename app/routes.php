@@ -1,7 +1,7 @@
 <?php
 
-	Route::get("/", function() {
-		View::show("index");
-	});
+	//
+	//	PUT ROUTES IN HERE
+	//
 
 ?>
