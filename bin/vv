@@ -1,4 +1,3 @@
-#!/Applications/MAMP/bin/php/php7.2.7/bin/php
 <?php
 	
 	function convert_name($str) {
@@ -28,9 +27,8 @@
 
 	}
 
+	// MIGRATE
 	else if ($argv[1] == "migrate") {
-
-		//error_reporting(E_ERROR | E_PARSE);
 
 		$class = convert_name($argv[2]);
 

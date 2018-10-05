@@ -4,8 +4,10 @@ class Session {
 
 	public static function init($arr = NULL) {
 		session_start();
-		foreach ($arr as $key => $value) {
-			$_SESSION[$key] = $value;
+		if ($arr != NULL) {
+			foreach ($arr as $key => $value) {
+				$_SESSION[$key] = $value;
+			}
 		}
 	}
 
@@ -33,7 +35,10 @@ class Session {
 		return session_id() != '';
 	}
 
-	public static function addFlash($key, $value) {
+	public static function addFlash($key, $value="") {
+		if (!Session::exists()) {
+			Session::init();
+		}
 		$_SESSION["flsh_" . $key] = $value;
 	}
 
@@ -48,8 +53,7 @@ class Session {
 	public static function destroyFlashes() {
 		if (Session::exists()) {
 			$flip = array_flip($_SESSION);
-			for ($i = 0; $i < count($flip); $i++) {
-				$name = $flip[$i];
+			foreach($flip as $name) {
 				if (substr($name, 0, 5) == "flsh_") {
 					unset($_SESSION[$name]);
 				}

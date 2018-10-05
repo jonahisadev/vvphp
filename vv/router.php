@@ -20,6 +20,9 @@ class RouteData {
 			$url .= "/";
 		}
 
+		// TODO: Clean this up
+
+		// We have a variable
 		if (strpos($url, "{") && strpos($url, "}")) {
 			// Check if the variable is the last element
 			// in the URL
@@ -57,7 +60,16 @@ class RouteData {
 			// 6. Remove double forward slashes
 			$url = str_replace("\\\\", "\\", $url);
 		} else {
+			$url = str_replace("//", "/", $url);
+			$url = preg_replace("/(?<!\\\\)\//", "\/", $url);
 			$url = substr_replace($url, "\/$", strlen($url)-1, 0);
+			$url = substr($url, 1, strlen($url)-1);
+			$url = str_replace("\\\\", "\\", $url);
+		}
+
+		// Catch this home bug
+		if ($url == "\/$/") {
+			$url = "/^" . $url;
 		}
 
 		$this->url = $url;

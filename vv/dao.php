@@ -3,6 +3,13 @@
 abstract class DAOItemType {
 	const NUMBER 	= 0;
 	const STR 		= 1;
+	const BLOB		= 2;
+	const DATE		= 3;
+	const TIME		= 4;
+}
+
+abstract class DAOConst {
+	const NOW		= 0;
 }
 
 class DAOItem {
@@ -15,6 +22,7 @@ class DAOItem {
 
 		$this->primary = false;
 		$this->inc = false;
+		$this->not_null = false;
 	}
 
 	function primary() {
@@ -27,11 +35,16 @@ class DAOItem {
 		return $this;
 	}
 
+	function not_null() {
+		$this->not_null = true;
+		return $this;
+	}
+
 }
 
 abstract class DAO {
 
-	private $items = [];
+	private $_items = [];
 
 	// Define model structure
 	public abstract function model();
@@ -40,8 +53,8 @@ abstract class DAO {
 	public function create($name) {
 		$sql = "CREATE TABLE $name (\n";
 
-		for ($i = 0; $i < count($this->items); $i++) {
-			$item = $this->items[$i];
+		for ($i = 0; $i < count($this->_items); $i++) {
+			$item = $this->_items[$i];
 
 			// Name
 			$sql .= $item->name;
@@ -53,6 +66,21 @@ abstract class DAO {
 					break;
 				case DAOItemType::STR:
 					$sql .= " VARCHAR(" . $item->opts['len'] . ")";
+					break;
+				case DAOItemType::BLOB:
+					$sql .= " BLOB";
+					break;
+				case DAOItemType::DATE:
+					$sql .= " TIMESTAMP";
+					if (isset($item->opts['def'])) {
+						$sql .= $item->opts['def'];
+					}
+					break;
+				case DAOItemType::TIME:
+					$sql .= " TIME";
+					if (isset($item->opts['def'])) {
+						$sql .= $item->opts['def'];
+					}
 					break;
 			}
 
@@ -67,18 +95,24 @@ abstract class DAO {
 				// TODO: Check for multiple primaries
 			}
 
+			// Not Null
+			if ($item->not_null) {
+				$sql .= " NOT NULL";
+			}
+
+			// Default
+			if ($item->def != NULL) {
+				$sql .= " DEFAULT " . $this->def;
+			}
+
 			// Comma if not last
-			if ($i != count($this->items) - 1) {
+			if ($i != count($this->_items) - 1) {
 				$sql .= ",";
 			}
 			$sql .= "\n";
 		}
 
 		$sql .= ")";
-
-		echo($sql . "\n");
-
-		error_reporting(E_ALL);
 
 		// Read config and create table
 		$conf = parse_ini_file(__DIR__ . "/../config.ini", true)["database"];
@@ -87,35 +121,91 @@ abstract class DAO {
 			echo("Error connecting to DB: " . mysqli_connect_error() . "\n");
 			exit();
 		}
+
+		if (!mysqli_query($db, $sql)) {
+			echo("Error running query\n");
+			exit();
+		}
+
+		echo("Successfully migrated!\n");
 	}
 
 	public static function get($pri) {
+		// Ensure DB is up and running
 		global $_DB;
 		if (!$_DB) {
 			die("DB was not initialized");
 		}
 
+		// Get a child class instance
 		$class = new ReflectionClass(get_called_class());
 		$inst = $class->newInstance();
 		
+		// Run model
 		$inst->model();
-		foreach ($inst->items as $item) {
+
+		// Find the primary key
+		foreach ($inst->_items as $item) {
 			$primary = $item;
 			break;
 		}
 
-		$sql = "SELECT * FROM " . $class->getName() . " WHERE " . $primary->name . "=?";
+		// Run the query
+		$sql = "SELECT * FROM " . $class->getName() . " WHERE " . $primary->name . "=:" . $primary->name;
 		$stmt = $_DB->prepare($sql);
 		$stmt->execute([$primary->name => $pri]);
-		$object = $stmt->fetch();
+		$data = $stmt->fetch();
 
-		var_dump($object);
-		die();
+		// Create DBO
+		foreach ($inst->_items as $item) {
+			$key = $item->name;
+			$inst->{$key} = $data[$key];
+		}
+
+		// Return
+		return $inst;
+	}
+
+	public static function new($data=NULL) {
+		global $_DB;
+		if (!$_DB) {
+			die("DB was not initialized");
+		}
+
+		// Assemble variable names
+		$ph = "(";
+		$index = 0;
+		foreach ($data as $key => $val) {
+			$ph .= ":" . $key;
+			if ($index != count($data) - 1) {
+				$ph .= ", ";
+			}
+			$index++;
+		}
+		$ph .= ")";
+
+		// Assemble variable names
+		$vars = "(";
+		$index = 0;
+		foreach ($data as $key => $val) {
+			$vars .= $key;
+			if ($index != count($data) - 1) {
+				$vars .= ", ";
+			}
+			$index++;
+		}
+		$vars .= ")";
+
+		// Create query
+		$sql = "INSERT INTO " . get_called_class() . " " . $vars . " VALUES " . $ph;
+
+		$stmt = $_DB->prepare($sql);
+		$stmt->execute($data);
 	}
 
 	protected function number($name, $def=NULL) {
 		$item = new DAOItem(DAOItemType::NUMBER, $name, $def);
-		$this->items[] = $item;
+		$this->_items[] = $item;
 		return $item;
 	}
 
@@ -124,7 +214,37 @@ abstract class DAO {
 			"len" => $len
 		];
 		$item = new DAOItem(DAOItemType::STR, $name, $def, $opts);
-		$this->items[] = $item;
+		$this->_items[] = $item;
+		return $item;
+	}
+
+	protected function binary($name, $def=NULL) {
+		$item = new DAOItem(DAOItemType::BLOB, $name, $def);
+		$this->_items[] = $item;
+		return $item;
+	}
+
+	protected function timestamp($name, $def=NULL) {
+		if ($def == DAOConst::NOW) {
+			$opts = [
+				"def" => " DEFAULT NOW()"
+			];
+			$def = NULL;
+		}
+		$item = new DAOItem(DAOItemType::DATE, $name, $def, $opts);
+		$this->_items[] = $item;
+		return $item;
+	}
+
+	protected function time($name, $def=NULL) {
+		if ($def == DAOConst::NOW) {
+			$opts = [
+				"def" => " DEFAULT NOW()"
+			];
+			$def = NULL;
+		}
+		$item = new DAOItem(DAOItemType::TIME, $name, $def, $opts);
+		$this->_items[] = $item;
 		return $item;
 	}
 
