@@ -144,6 +144,20 @@ abstract class DAO {
 	}
 
 	public static function get($pri) {
+		// Get a child class instance
+		$class = new ReflectionClass(get_called_class());
+		$inst = $class->newInstance();
+		
+		// Run model
+		$inst->model();
+
+		// Find the primary key
+		$primary = DAO::findPrimaryItem($inst);
+
+		return $class->getMethod("getBy")->invoke($class, $primary->name, $pri);
+	}
+
+	public static function getBy($parameter, $value) {
 		// Ensure DB is up and running
 		global $_DB;
 		if (!$_DB) {
@@ -157,14 +171,12 @@ abstract class DAO {
 		// Run model
 		$inst->model();
 
-		// Find the primary key
-		$primary = DAO::findPrimaryItem($inst);
-
-		if ($pri != NULL) {
+		// Actually run query
+		if ($value != NULL) {
 			// Run the query
-			$sql = "SELECT * FROM " . $class->getName() . " WHERE " . $primary->name . "=:" . $primary->name;
+			$sql = "SELECT * FROM " . $class->getName() . " WHERE " . $parameter . "=:" . $parameter;
 			$stmt = $_DB->prepare($sql);
-			$stmt->execute([$primary->name => $pri]);
+			$stmt->execute([$parameter => $value]);
 			$data = $stmt->fetch();
 
 			// Create DBO

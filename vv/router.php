@@ -218,10 +218,10 @@ class Route {
 						global $_CSRF;
 						if (isset($_POST['_csrf'])) {
 							if (!csrf_verify($_POST['_csrf'])) {
-								die("INCORRET CSRF");
+								Route::sendSecurityError();
 							}
 						} else {
-							die("CSRF IS MISSING IN SECURE POST");
+							Route::sendSecurityError();
 						}
 					}
 
@@ -254,6 +254,13 @@ class Route {
 	private static function send404($URL) {
 		http_response_code(404);
 		include 'vv/data/404.php';
+	}
+
+	private static function sendSecurityError() {
+		http_response_code(401);
+		include 'vv/data/csrf.php';
+		Session::destroy();
+		die();
 	}
 
 }

@@ -35,9 +35,12 @@
 <body>
 	<div class="center">
 		<div class="box">
-			<h1>404 - Not Found</h1>
-			<h2>No File or Directory: <?= $URL ?></h2>
-			<p><i>Sorry :(</i></p>
+			<h1>Security Warning</h1>
+			<h2>
+				Your POST request was missing a secure token.
+				We've logged you out in order to prevent any immediate security threats.
+				Please restart your browser and log back in.
+			</h2>
 		</div>
 
 		<footer>vvPHP v0.1</footer>
