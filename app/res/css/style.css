@@ -1,3 +1,22 @@
 body {
 	font-family: Arial, Helvetica, sans-serif;
+	background-color: #EFEFEF;
+}
+
+p {
+	font-size: 16pt;
+}
+
+.center {
+	text-align: center;
+}
+
+.info {
+	width: 50%;
+	margin-left: 25%;
+}
+
+.info-p {
+	width: 100%;
+	text-align: left;
 }
