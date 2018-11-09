@@ -5,7 +5,7 @@
 		$x = str_replace(BASEURL, "", explode("?", $str)[0]);
 		if (substr($x, -1) != "/") {
 			$x = substr($x, 1, strlen($x)-1);
-			header("Location: " . $x . "/", TRUE, 301);
+			header("Location: " . BASEURL  . "/" . $x . "/", TRUE, 301);
 			exit();
 		}
 		return $x;
