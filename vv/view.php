@@ -14,6 +14,11 @@
 			exit();
 		}
 
+		static function redirectGlobal($url) {
+			header("Location: " . $url);
+			exit();
+		}
+
 	}
 
 ?>

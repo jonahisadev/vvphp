@@ -8,7 +8,7 @@
 		echo('<script src="' . BASEURL . '/app/res/js/' . $name . '"></script>');
 	}
 
-	function image($name, $opts) {
+	function image($name, $opts=NULL) {
 		$attr = "";
 
 		foreach ($opts as $key => $val) {
