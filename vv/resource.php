@@ -11,8 +11,10 @@
 	function image($name, $opts=NULL) {
 		$attr = "";
 
-		foreach ($opts as $key => $val) {
-			$attr .= $key . '="' . $val . '" ';
+		if ($opts) {
+			foreach ($opts as $key => $val) {
+				$attr .= $key . '="' . $val . '" ';
+			}
 		}
 
 		echo('<img src="' . BASEURL . '/app/res/img/' . $name . '" ' . $attr . '></img>');

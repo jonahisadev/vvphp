@@ -136,7 +136,8 @@ abstract class DAO {
 		}
 
 		if (!mysqli_query($db, $sql)) {
-			echo("Error running query\n");
+			echo("Error running query - " . mysqli_error($db) . "\n");
+			echo($sql . "\n");
 			exit();
 		}
 
@@ -274,6 +275,27 @@ abstract class DAO {
 		$sql .= " WHERE " . $primary->name . "=:" . $primary->name;
 
 		// Run a PDO
+		$stmt = $_DB->prepare($sql);
+		unset($props['_items']);
+		$stmt->execute($props);
+	}
+
+	public function delete($var=NULL) {
+		global $_DB;
+		if (!$_DB) {
+			die("DB was not initialized");
+		}
+
+		$sql = "DELETE FROM " . get_called_class() . " WHERE ";
+
+		if ($var == NULL) {
+			$item = DAO::findPrimaryItem($this);
+			$var = $item->name;
+		}
+
+		$sql .= $var . "=:" . $var;
+		$props = [$var => get_object_vars($this)[$var]];
+		// print_r($props);
 		$stmt = $_DB->prepare($sql);
 		$stmt->execute($props);
 	}

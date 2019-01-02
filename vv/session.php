@@ -52,10 +52,9 @@ class Session {
 
 	public static function destroyFlashes() {
 		if (Session::exists()) {
-			$flip = array_flip($_SESSION);
-			foreach($flip as $name) {
-				if (substr($name, 0, 5) == "flsh_") {
-					unset($_SESSION[$name]);
+			foreach($_SESSION as $key => $value) {
+				if (substr($key, 0, 5) == "flsh_") {
+					unset($_SESSION[$key]);
 				}
 			}
 		}
