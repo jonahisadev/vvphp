@@ -36,9 +36,11 @@
 	$url = prepare_url($_SERVER['REQUEST_URI']);
 
 	// Connect to the database
-	require_once "vv/db.php";
-	$_DB = db_initialize($config['database']);
-	$_DB->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+	if ($config['app']['db']) {
+		require_once "vv/db.php";
+		$_DB = db_initialize($config['database']);
+		$_DB->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+	}
 
 	// Required functions
 	require_once "vv/session.php";
