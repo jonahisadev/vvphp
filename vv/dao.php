@@ -144,6 +144,62 @@ abstract class DAO {
 		echo("Successfully migrated!\n");
 	}
 
+	public static function getAll() {
+		global $_DB;
+		if (!$_DB) {
+			die("DB was not initialized");
+		}
+
+		$class = new ReflectionClass(get_called_class());
+
+		$sql = "SELECT * FROM " . $class->getName();
+		$stmt = $_DB->prepare($sql);
+		$stmt->execute();
+		$data = $stmt->fetchAll();
+
+		$res = [];
+
+		for ($i = 0; $i < count($data); $i++) {
+			$inst = $class->newInstance();
+			$inst->model();
+			foreach ($inst->_items as $item) {
+				$key = $item->name;
+				$inst->{$key} = $data[$i][$key];
+			}
+			$res[] = $inst;
+		}
+
+		return $res;
+	}
+
+	public static function getBetween($min, $max) {
+		global $_DB;
+		if (!$_DB) {
+			die("DB was not initialized");
+		}
+
+		$class = new ReflectionClass(get_called_class());
+
+		$sql = "SELECT * FROM " . $class->getName() . " LIMIT " . $min . ", " . ($max - $min);
+		$stmt = $_DB->prepare($sql);
+		$stmt->execute();
+		$data = $stmt->fetchAll();
+
+		$res = [];
+
+		for ($i = 0; $i < count($data); $i++) {
+			$inst = $class->newInstance();
+			$inst->model();
+            foreach ($inst->_items as $item) {
+                $key = $item->name;
+                $inst->{$key} = $data[$i][$key];
+			}
+			$res[] = $inst;
+		}
+
+		return $res;
+	}
+
 	public static function get($pri) {
 		// Get a child class instance
 		$class = new ReflectionClass(get_called_class());
