@@ -9,6 +9,13 @@ abstract class DAOItemType {
 	const TEXT 		= 5;
 }
 
+abstract class VerifyStatus {
+	const SUCCESS		= 0;
+	const BAD_LENGTH	= 1;
+	const DATA_NULL		= 2;
+	const DATA_UNSIGNED	= 3;
+}
+
 abstract class DAOConst {
 	const NOW		= 0;
 }
@@ -252,7 +259,7 @@ abstract class DAO {
 		return $inst;
 	}
 
-	public static function new($data=NULL) {
+	public static function new($data=NULL, $err_cb=NULL) {
 		global $_DB;
 		if (!$_DB) {
 			die("DB was not initialized");
@@ -266,6 +273,21 @@ abstract class DAO {
 			return $class->getMethod("get")->invoke($class, NULL);
 		}
 
+		// Verify data
+		$inst = $class->newInstance();
+		$inst->model();
+		foreach ($data as $key => $val) {
+			$inst->{$key} = $val;
+		}
+		if (($err_code = $inst->verify()) != VerifyStatus::SUCCESS) {
+			if ($err_cb == null) {
+				die(DAO::verifyError($err_code));
+			} else {
+				call_user_func_array($err_cb, [$err_code]);
+				die();
+			}
+		}
+		
 		// Assemble variable names
 		$ph = "(";
 		$index = 0;
@@ -299,10 +321,20 @@ abstract class DAO {
 		return $class->getMethod("get")->invoke($class, $_DB->lastInsertId());
 	}
 
-	public function save() {
+	public function save($err_cb=NULL) {
 		global $_DB;
 		if (!$_DB) {
 			die("DB was not initialized");
+		}
+
+		// Verify data
+		if (($err_code = $this->verify()) != VerifyStatus::SUCCESS) {
+			if ($err_cb == NULL) {
+				die(DAO::verifyError($err_code));
+			} else {
+				call_user_func_array($err_cb, [$err_code]);
+				die();
+			}
 		}
 
 		// Begin SQL statement
@@ -354,6 +386,45 @@ abstract class DAO {
 		// print_r($props);
 		$stmt = $_DB->prepare($sql);
 		$stmt->execute($props);
+	}
+
+	public function verify() {
+		foreach ($this->_items as $item) {
+			$var = $this->{$item->name};
+
+			// Length
+			if (isset($item->opts['len'])) {
+				if (strlen($var) > $item->opts['len'])
+					return VerifyStatus::BAD_LENGTH;
+			}
+
+			// Null Status
+			if ($item->not_null) {
+				if (empty($var))
+					return VerifyStatus::DATA_NULL;
+			}
+
+			// Unsigned Status
+			if (isset($item->opts['unsigned']) && $item->opts['unsigned'] == 1) {
+				if ($var < 0)
+					return VerifyStatus::DATA_UNSIGNED;
+			}
+		}
+
+		return VerifyStatus::SUCCESS;
+	}
+
+	public static function verifyError($code) {
+		switch ($code) {
+			case VerifyStatus::BAD_LENGTH:
+				return "Data too long for specified length";
+			case VerifyStatus::DATA_NULL:
+				return "Non-null data was null";
+			case VerifyStatus::DATA_UNSIGNED:
+				return "Unsigned data was negative";
+			default:
+				return "No error";
+		}
 	}
 
 	private static function findPrimaryItem($inst) {

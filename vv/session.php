@@ -12,6 +12,7 @@ class Session {
 	}
 
 	public static function destroy() {
+		session_start();
 		session_destroy();
 	}
 

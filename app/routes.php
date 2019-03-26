@@ -1,5 +1,7 @@
 <?php
 
+	include 'model/Test.php';
+
 	//
 	//	PUT ROUTES IN HERE
 	//
