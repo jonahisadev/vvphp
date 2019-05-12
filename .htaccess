@@ -1,3 +1,9 @@
 RewriteEngine On
-RewriteCond %{HTTP:Accept} text/html [NC]
-RewriteRule ^(.+)/?$ index.php [NC,L]
+
+RewriteCond %{REQUEST_URI} favicon|\.(js|ttf|jpg|png|mp3)$
+RewriteRule ^ - [L]
+
+RewriteCond %{HTTP:Accept} application/json [OR]
+RewriteCond %{HTTP:Accept} text/html [OR]
+RewriteCond %{HTTP:Accept} ^\*/\*$
+RewriteRule ^(.+)/?$ index.php [L]

@@ -31,6 +31,8 @@
 	}
 
 	define("VIEWPATH", $config['app']['views'], true);
+	define("COMPOSER", $config['app']['composer'], true);
+	define("MODE", $config['app']['mode'], true);
 
 	// Prepare the URL
 	$url = prepare_url($_SERVER['REQUEST_URI']);
@@ -49,6 +51,7 @@
 	require_once "vv/view.php";
 	require_once "vv/resource.php";
 	require_once "vv/dao.php";
+	require_once "vv/mode.php";
 
 	// Get the routes to check
 	include 'app/routes.php';
