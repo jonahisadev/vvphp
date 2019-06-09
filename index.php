@@ -34,6 +34,10 @@
 	define("COMPOSER", $config['app']['composer'], true);
 	define("MODE", $config['app']['mode'], true);
 
+	if (COMPOSER) {
+		require_once 'vendor/autoload.php';
+	}
+
 	// Prepare the URL
 	$url = prepare_url($_SERVER['REQUEST_URI']);
 

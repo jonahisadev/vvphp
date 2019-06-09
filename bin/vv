@@ -44,4 +44,20 @@
 
 	}
 
+	// MODEL
+	else if ($argv[1] == "model") {
+		$class = convert_name($argv[2]);
+
+		include __DIR__ . "/../vv/dao.php";
+		include __DIR__ . "/../vv/db.php";
+		include __DIR__ . "/../app/model/" . $class . ".php";
+
+		$r = new ReflectionClass($class);
+		$obj = $r->newInstance();
+		$obj->model();
+		$sql = $obj->export($class);
+
+		echo($sql);
+	}
+
 ?>

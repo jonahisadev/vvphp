@@ -66,8 +66,7 @@ abstract class DAO {
 	// Define model structure
 	public abstract function model();
 
-	// Create the structure in DB
-	public function create($name) {
+	public function export($name) {
 		$sql = "CREATE TABLE $name (\n";
 
 		for ($i = 0; $i < count($this->_items); $i++) {
@@ -133,18 +132,25 @@ abstract class DAO {
 		}
 
 		$sql .= ")";
+		return $sql;
+	}
+
+	// Create the structure in DB
+	public function create($name) {
+		$sql = $this->export($name);
 
 		// Read config and create table
 		$conf = parse_ini_file(__DIR__ . "/../config.ini", true)["database"];
 		$db = mysqli_connect($conf['host'], $conf['username'], $conf['password'], $conf['dbname'], 3306);
 		if (!$db) {
 			echo("Error connecting to DB: " . mysqli_connect_error() . "\n");
+			echo("If you want to manually migrate your table, run 'export'\n");
 			exit();
 		}
 
 		if (!mysqli_query($db, $sql)) {
 			echo("Error running query - " . mysqli_error($db) . "\n");
-			echo($sql . "\n");
+			echo("If you want to manually migrate your table, run 'export'\n");
 			exit();
 		}
 
